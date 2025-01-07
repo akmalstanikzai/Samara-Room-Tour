@@ -1,7 +1,7 @@
-import { SRGBColorSpace, NoToneMapping, Vector3 } from 'three';
+import { SRGBColorSpace, NoToneMapping} from 'three';
 import { MathUtils } from './libs/math';
-import { appState } from '../services/app-state';
-import { Power3, Linear, Power4 } from 'gsap';
+import { Linear } from 'gsap';
+
 
 const params = {
   pano: {
@@ -15,7 +15,7 @@ const params = {
   },
   animation: {
     move: {
-      duration: 0.15,
+      duration: 1.4,
       ease: Linear,
       easeName: 'Linear',
     },

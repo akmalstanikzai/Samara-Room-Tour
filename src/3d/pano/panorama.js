@@ -4,12 +4,11 @@ import {
   SphereGeometry,
   Color,
   Vector3,
-  Layers,
 } from 'three';
 import { params } from '../settings';
 import lerpFrag from './shaders/lerp/lerp.frag';
 import lerpVert from './shaders/lerp/lerp.vert';
-import { gsap, Power0, Linear, Power4, Power3 } from 'gsap';
+import { gsap, Power3, } from 'gsap';
 import { appState } from '../../services/app-state';
 import { Cursor } from './cursor';
 import { Hotspots } from './hotspots';
@@ -54,7 +53,7 @@ export class Panorama {
         eventTarget: params.container,
         eventName: 'mousemove',
         eventFunction: (e) => {
-          this.cursor.onMove(e);
+          this.cursor?.onMove(e);
           if (this.mouseDownPosition) {
             const dx = e.clientX - this.mouseDownPosition.x;
             const dy = e.clientY - this.mouseDownPosition.y;
@@ -79,7 +78,7 @@ export class Panorama {
           params.container.classList.remove('cursor-dragging');
           params.container.classList.add('cursor-grab');
           if (this.mouseDownPosition) {
-            this.cursor.onClick(e);
+            this.cursor?.onClick(e);
           }
           this.mouseDownPosition = null;
         },
@@ -222,12 +221,12 @@ export class Panorama {
       if (pano.name === name) {
         pano.visibleHotspots?.forEach((item) => {
           const object = this.engine.scene.getObjectByName(`Hotspot_${item}`);
-          object.visible = true;
+          object && (object.visible = true);
         });
 
         pano.visibleInfospots?.forEach((item) => {
           const object = this.engine.scene.getObjectByName(`Infospot_${item}`);
-          object.visible = true;
+          object && (object.visible = true);
         });
       }
     });
@@ -258,13 +257,13 @@ export class Panorama {
     }
   }
 
-  async change(name, firstInit) {
+  async change(name, firstInit, duration = 0.3) { // Set default duration to 0.5 seconds
     if (this.moveGsap.isActive()) await this.moveGsap;
     this.currentPano = name;
-
+  
     if (!this.cameraPositions) {
       this.cameraPositions = {};
-
+  
       this.panoItems.forEach((pano) => {
         this.cameraPositions[pano.name] = {
           position: new Vector3().copy(pano.position),
@@ -272,19 +271,19 @@ export class Panorama {
         };
       });
     }
-
+  
     const material = this.engine.panoMesh.material;
-
+  
     const { position: positionB, target: targetB } = this.cameraPositions[name];
     const positionA = this.engine.controls.getPosition();
-
+  
     if (firstInit) {
       const nextTextureMap = this.engine.textures.getTexture(
         this.panoItems.find((pano) => pano.name === name).textureMap
       );
       material.uniforms.texture2.value = nextTextureMap;
       this.engine.panoMesh.position.copy(positionB);
-
+  
       this.handleHotspotsVisibility(name);
       this.engine.controls.setLookAt(
         positionB.x,
@@ -294,23 +293,23 @@ export class Panorama {
         targetB.y,
         targetB.z
       );
-
+  
       material.uniforms.texture1.value = material.uniforms.texture2.value;
       material.uniforms.mixRatio.value = 0;
-
+  
       return;
     }
-
+  
     const obj = {
       x: positionA.x,
       y: positionA.y,
       z: positionA.z,
       blend: 0,
     };
-
+    const distance = positionA.distanceTo(positionB);
     this.moveGsap.to(obj, {
-      duration: firstInit ? 0 : params.animation.move.duration,
-      ease: params.animation.move.ease,
+      duration: duration, // Use the provided duration
+      ease: Power3.easeInOut,  // Use a smoother easing function
       blend: 1,
       x: positionB.x,
       y: positionB.y,
@@ -320,7 +319,7 @@ export class Panorama {
           this.panoItems.find((pano) => pano.name === name).textureMap
         );
         this.handleHotspotsVisibility(name);
-
+  
         material.uniforms.texture2.value = nextTextureMap;
         this.engine.panoMesh.position.copy(positionB);
       },
@@ -331,17 +330,16 @@ export class Panorama {
       },
       onUpdate: () => {
         this.engine.controls.moveTo(obj.x, obj.y, obj.z, true);
-        const progress = this.moveGsap.progress();
-        material.uniforms.mixRatio.value = progress;
+        const progress = Math.pow(this.moveGsap.progress(), 15);
+        material.uniforms.mixRatio.value = progress * progress;
       },
     });
-
+  
     return this.moveGsap;
   }
-
   update() {
-    this.cursor && this.cursor.update();
-    this.hotspots && this.hotspots.update();
+    this.cursor?.update();
+    this.hotspots?.update();
   }
 
   createPanoItem(
@@ -363,13 +361,10 @@ export class Panorama {
        * or calculated from the scene object with matching name
        */
       get position() {
-        let p;
-
-        p = window.engine.scene
-          .getObjectByName(name)
-          .getWorldPosition(new Vector3());
-
-        return position ? new Vector3(position.x, position.y, position.z) : p;
+        const object = window.engine.scene.getObjectByName(name);
+        return position
+          ? new Vector3(position.x, position.y, position.z)
+          : object?.getWorldPosition(new Vector3()) || new Vector3();
       },
       /**
        * Gets the target position for the panorama camera
@@ -394,7 +389,7 @@ export class Panorama {
   createTextureObject(textureMap) {
     return {
       path: textureMap,
-      name: textureMap, // textureMap.replace(/\.[^/.]+$/, '')
+      name: textureMap,
       anisotropy: true,
       nonSrgb: true,
       filter: true,

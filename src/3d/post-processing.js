@@ -1,4 +1,4 @@
-import { HalfFloatType, Color } from 'three';
+import { HalfFloatType} from 'three';
 import { params } from './settings';
 import {
   EffectComposer,

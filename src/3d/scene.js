@@ -5,7 +5,6 @@ import {
   AmbientLight,
   WebGLRenderer,
   Mesh,
-  Vector3,
 } from 'three';
 import { Textures } from './textures';
 import { cameraControls } from './controls';
@@ -20,10 +19,7 @@ import { Tests } from './tests';
 
 import { fromEvent, merge, timer } from 'rxjs';
 import {
-  auditTime,
-  map,
   mapTo,
-  share,
   startWith,
   switchMap,
 } from 'rxjs/operators';
@@ -47,6 +43,7 @@ export class CreateScene {
    */
 
   async init(reInit, preload, name) {
+
     if (reInit || this.renderer) {
       await this.initPromise;
 
@@ -84,6 +81,7 @@ export class CreateScene {
       this.renderer.toneMappingExposure = params.renderer.exposure;
       this.renderer.toneMapping = params.renderer.toneMapping;
       this.scene = new Scene();
+      
 
       this.camera = new PerspectiveCamera(
         params.camera.fov,

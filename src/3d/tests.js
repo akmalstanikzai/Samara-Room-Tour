@@ -1,4 +1,3 @@
-import { appState } from '../services/app-state';
 import { delayMs } from '../utils/delay';
 import { params } from './settings';
 

@@ -27,7 +27,7 @@ class CameraGsap {
     targetX,
     targetY,
     targetZ,
-    animationTime
+    animationTime,
   ) {
     const targetA = this.engine.controls.getTarget();
     const targetB = {

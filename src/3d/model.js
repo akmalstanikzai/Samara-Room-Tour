@@ -1,17 +1,8 @@
 import {
-  Mesh,
   Vector3,
   Group,
   Box3,
-  PlaneGeometry,
-  Object3D,
-  ShaderMaterial,
-  Color,
-  Vector2,
-  LinearSRGBColorSpace,
-  BoxHelper,
 } from 'three';
-import { loadGltf } from './model-loader';
 import { params } from './settings';
 import { appState } from '../services/app-state';
 import { Materials } from './materials';

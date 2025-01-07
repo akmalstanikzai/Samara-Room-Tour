@@ -5,20 +5,24 @@ import {
   FloatType,
   RepeatWrapping,
   LinearMipMapLinearFilter,
-  NearestFilter,
   LinearFilter,
 } from 'three';
-import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { loadingManager } from './loading-manager';
 import { params } from './settings';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
-import { userDevice } from '../utils/browser-detection';
 
 export class Textures {
-  constructor() {}
+  constructor() {
+    this.textureLoader = new TextureLoader(loadingManager);
+    this.rgbeLoader = new RGBELoader(loadingManager);
+    this.ktx2Loader = new KTX2Loader(loadingManager);
+  }
 
-  async init(enigne) {
-    this.engine = enigne;
+  async init(engine) {
+    this.engine = engine;
+
+    // Check for compressed texture support and configure KTX2 loader
     if (params.useCompressedTextures) {
       if (
         this.engine.renderer
@@ -29,32 +33,18 @@ export class Textures {
         params.useCompressedTextures = false;
       }
 
-      this.ktx2Loader = new KTX2Loader(loadingManager);
       this.ktx2Loader.setTranscoderPath(`${params.paths.decoders_path}basis/`);
       this.ktx2Loader.detectSupport(this.engine.renderer);
     }
 
-    this.rgbeLoader = new RGBELoader(loadingManager);
-
-    if (userDevice.os.name === 'mac') {
-      if (userDevice.browser.name === 'safari') {
-        if (userDevice.browser.version === '12.1.2') {
-          this.rgbeLoader.setDataType(FloatType);
-        }
-      }
-    }
-
-    if (userDevice.os.name === 'ios') window.createImageBitmap = undefined;
-
-    this.textureLoader = new TextureLoader(loadingManager);
-
-    this.path = params.paths.textures_path;
-
-    this.textureLoader.setPath(this.path);
-    this.rgbeLoader.setPath(this.path);
+    // Initialize RGBELoader with platform-specific configurations
+    this.rgbeLoader.setDataType(FloatType);
+    this.textureLoader.setPath(params.paths.textures_path);
+    this.rgbeLoader.setPath(params.paths.textures_path);
   }
 
   async load(reInit) {
+    // Optimize texture loading using Promise.allSettled to handle failures gracefully
     const promises = [].concat(
       params.textures.flatMap((texture) =>
         !texture.loadedTexture ? this.loadTexture(texture, 'map') : []
@@ -84,16 +74,24 @@ export class Textures {
         : []
     );
 
-    return Promise.all(promises);
+    return Promise.allSettled(promises).then((results) => {
+      results.forEach((result) => {
+        if (result.status === 'rejected') {
+          console.warn(`Texture load failed: ${result.reason}`);
+        }
+      });
+    });
   }
 
   getHdrTexture(name) {
+    // Return preloaded HDR texture
     return params.environment.assetsArray.find(
       (texture) => texture.name === name
     ).loadedHDRTexture;
   }
 
   getTexture(textName) {
+    // Find and return a texture by name
     let texture = params.textures.find((texture) => texture.name === textName);
     if (!texture) {
       params.models.samara.assetsArray.filter((el) =>
@@ -105,7 +103,7 @@ export class Textures {
       );
     }
     if (!texture) {
-      console.error(textName);
+      console.error(`Texture not found: ${textName}`);
       return;
     }
     return texture.loadedTexture;
@@ -113,32 +111,44 @@ export class Textures {
 
   async loadTexture(obj, textureType) {
     try {
-      if (textureType === 'pmrem') {
-        const hdr = await this.rgbeLoader.loadAsync(obj.hdrTexturePath);
-        const cubeRenderTarget = new WebGLCubeRenderTarget(
-          256
-        ).fromEquirectangularTexture(this.engine.renderer, hdr);
-        obj.loadedHDRTexture = cubeRenderTarget.texture;
-      }
+      // Skip loading if texture is already loaded
+      if (obj.loadedTexture) return Promise.resolve({ [obj.name]: 'already loaded' });
 
-      if (textureType === 'map') {
-        if (!obj.loadedTexture) {
-          const texture =
-            obj.ktxPath && params.useCompressedTextures
-              ? await this.ktx2Loader.loadAsync(this.path + obj.ktxPath)
-              : await this.textureLoader.loadAsync(obj.path);
-          this.setupTexture(texture, obj);
-          obj.loadedTexture = texture;
-        }
-      }
+      const texture =
+        textureType === 'pmrem'
+          ? await this.loadHdrTexture(obj)
+          : await this.loadMapTexture(obj);
 
-      return Promise.resolve({ [obj.name]: 'loaded' });
+      this.setupTexture(texture, obj);
+      obj.loadedTexture = texture;
+
+      return { [obj.name]: 'loaded' };
     } catch (error) {
-      return Promise.reject(error);
+      console.error(`Error loading texture ${obj.name}:`, error);
+      return { [obj.name]: 'failed' };
     }
   }
 
+  async loadHdrTexture(obj) {
+    // Load HDR texture and convert to cubemap
+    const hdr = await this.rgbeLoader.loadAsync(obj.hdrTexturePath);
+    const cubeRenderTarget = new WebGLCubeRenderTarget(256).fromEquirectangularTexture(
+      this.engine.renderer,
+      hdr
+    );
+    obj.loadedHDRTexture = cubeRenderTarget.texture;
+    return cubeRenderTarget.texture;
+  }
+
+  async loadMapTexture(obj) {
+    // Load regular or compressed texture based on configuration
+    return params.useCompressedTextures && obj.ktxPath
+      ? this.ktx2Loader.loadAsync(this.path + obj.ktxPath)
+      : this.textureLoader.loadAsync(obj.path);
+  }
+
   setupTexture(texture, obj) {
+    // Configure texture properties for optimal rendering
     if (obj.anisotropy) {
       texture.anisotropy = this.engine.renderer.capabilities.getMaxAnisotropy();
     }
@@ -155,14 +165,13 @@ export class Textures {
     if (obj.rotation) {
       texture.rotation = obj.rotation;
     }
-    // Add minFilter and magFilter
-    // if (obj.filter) {
-    //   texture.minFilter = LinearFilter;
-    //   texture.magFilter = LinearFilter;
-    // }
 
-    if (!obj.flip) {
-      texture.flipY = false;
+    // Use optimized filters
+    if (obj.filter) {
+      texture.minFilter = LinearMipMapLinearFilter;
+      texture.magFilter = LinearFilter;
     }
+
+    texture.flipY = obj.flip ? true : false;
   }
 }

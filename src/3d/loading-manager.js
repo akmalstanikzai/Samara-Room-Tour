@@ -25,7 +25,7 @@ loadingManager.onProgress = function (item, loaded, total) {
 loadingManager.onLoad = function (item, loaded, total) {};
 
 loadingManager.onError = function (err) {
-  // console.error('Error.', err);
+  // console.error('Error.', err)
   appState.errors.next({
     isError: true,
     message: `Error ${err}`,

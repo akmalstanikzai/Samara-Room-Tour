@@ -43,14 +43,15 @@ export class Hotspots {
     this.infospots = [];
 
     this.engine.pano.infospots.forEach((item) => {
-      const infoSpot = new Object3D();
-      infoSpot.position.copy(item.position);
+      this.engine.pano.infospots?.forEach((item) => {
+        const infoSpot = new Object3D();
+        infoSpot.position.copy(item.position);
 
       infoSpot.name = `Infospot_${item.name}`;
       infoSpot._bubbleText = item.bubbleText;
       this.infospots.push(infoSpot);
       this.engine.scene.add(infoSpot);
-    });
+    })});
   }
 
   /**
