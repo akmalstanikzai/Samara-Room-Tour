@@ -4,9 +4,9 @@
   "description": "",
   "private": true,
   "scripts": {
-    "start": "webpack-dev-server",
+    "start": "webpack-dev-server --port 9001",
     "build": "cross-env NODE_ENV=prod webpack --config webpack.config.babel.js",
-    "dev": "webpack-dev-server --host 0.0.0.0",
+    "dev": "webpack-dev-server --host 0.0.0.0 --port 9001",
     "doc": "jsdoc -c jsdoc.json",
     "commit": "git add . && git commit -m \"Changes: $(git diff --cached --numstat | awk '{files += 1; insertions += $1; deletions += $2} END {print files \"f \" insertions \"+\" deletions \"-\"}')\""
   },

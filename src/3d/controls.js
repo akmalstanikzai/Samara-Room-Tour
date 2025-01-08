@@ -49,12 +49,17 @@ export class cameraControls {
       params.container
     );
 
+    // Disable translation controls
     this.engine.controls.mouseButtons.wheel = none;
     this.engine.controls.mouseButtons.middle = none;
     this.engine.controls.touches.two = none;
     this.engine.controls.touches.three = none;
     this.engine.controls.mouseButtons.right = none;
     this.engine.controls.restThreshold = 3;
+
+    // Enable rotation controls
+    this.engine.controls.mouseButtons.left = CameraControls.ACTION.ROTATE;
+    this.engine.controls.touches.one = CameraControls.ACTION.TOUCH_ROTATE;
 
     this.setFirstPersonParams();
 
@@ -74,9 +79,11 @@ export class cameraControls {
     this.aKey = new holdEvent.KeyboardKeyHold(KEYCODE.A, 10);
     this.sKey = new holdEvent.KeyboardKeyHold(KEYCODE.S, 10);
     this.dKey = new holdEvent.KeyboardKeyHold(KEYCODE.D, 10);
+    this.leftArrowKey = new holdEvent.KeyboardKeyHold(KEYCODE.ARROW_LEFT, 10);
+    this.rightArrowKey = new holdEvent.KeyboardKeyHold(KEYCODE.ARROW_RIGHT, 10);
     this.upArrowKey = new holdEvent.KeyboardKeyHold(KEYCODE.ARROW_UP, 10);
     this.downArrowKey = new holdEvent.KeyboardKeyHold(KEYCODE.ARROW_DOWN, 10);
-    // this.addListeners();
+    this.addListeners(); // Add this line to enable the controls
   }
 
   addListeners() {
@@ -85,15 +92,15 @@ export class cameraControls {
         eventTarget: this.aKey,
         eventName: 'holding',
         eventFunction: () => {
-          this.engine.controls.truck(-this.holdIntervalDelay, 0, false),
-            this.engine.update();
+          this.engine.controls.rotate(-this.holdIntervalDelay, 0, false);
+          this.engine.update();
         },
       },
       {
         eventTarget: this.dKey,
         eventName: 'holding',
         eventFunction: () => {
-          this.engine.controls.truck(this.holdIntervalDelay, 0, false);
+          this.engine.controls.rotate(this.holdIntervalDelay, 0, false);
           this.engine.update();
         },
       },
@@ -101,7 +108,7 @@ export class cameraControls {
         eventTarget: this.wKey,
         eventName: 'holding',
         eventFunction: () => {
-          this.engine.controls.forward(this.holdIntervalDelay, false);
+          this.engine.controls.rotate(0, -this.holdIntervalDelay, false);
           this.engine.update();
         },
       },
@@ -109,15 +116,31 @@ export class cameraControls {
         eventTarget: this.sKey,
         eventName: 'holding',
         eventFunction: () => {
-          this.engine.controls.forward(-this.holdIntervalDelay, false),
-            this.engine.update();
+          this.engine.controls.rotate(0, this.holdIntervalDelay, false);
+          this.engine.update();
+        },
+      },
+      {
+        eventTarget: this.leftArrowKey,
+        eventName: 'holding',
+        eventFunction: () => {
+          this.engine.controls.rotate(-this.holdIntervalDelay, 0, false);
+          this.engine.update();
+        },
+      },
+      {
+        eventTarget: this.rightArrowKey,
+        eventName: 'holding',
+        eventFunction: () => {
+          this.engine.controls.rotate(this.holdIntervalDelay, 0, false);
+          this.engine.update();
         },
       },
       {
         eventTarget: this.upArrowKey,
         eventName: 'holding',
         eventFunction: () => {
-          this.engine.controls.truck(0, -this.holdIntervalDelay, false);
+          this.engine.controls.rotate(0, -this.holdIntervalDelay, false);
           this.engine.update();
         },
       },
@@ -125,7 +148,7 @@ export class cameraControls {
         eventTarget: this.downArrowKey,
         eventName: 'holding',
         eventFunction: () => {
-          this.engine.controls.truck(0, this.holdIntervalDelay, false);
+          this.engine.controls.rotate(0, this.holdIntervalDelay, false);
           this.engine.update();
         },
       },
